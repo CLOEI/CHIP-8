@@ -1,8 +1,20 @@
-use std::{fs::File, io::Read};
+use std::{
+    fs::File,
+    io::{Read, Seek},
+};
 
-use crate::register::Register;
+use crate::{register::Register, screen::Screen};
 
-pub fn start(register: &mut Register, rom: &mut File) {
+pub fn start(register: &mut Register, screen: &mut Screen) {
+    let mut rom: File = File::open("Pong.ch8").expect("Failed to open file");
+    let rom_data = {
+        let mut data = Vec::new();
+        rom.read_to_end(&mut data).expect("Failed to read file");
+        data
+    };
+    rom.seek(std::io::SeekFrom::Start(0))
+        .expect("Failed to seek file");
+
     let mut buffer: [u8; 2] = [0; 2];
 
     loop {
@@ -12,7 +24,7 @@ pub fn start(register: &mut Register, rom: &mut File) {
 
                 match opcode & 0xF000 {
                     0x0000 => match opcode {
-                        0x00E0 => println!("{:04X} CLS", opcode),
+                        0x00E0 => screen.clear(),
                         0x00EE => println!("{:04X} RET", opcode),
                         _ => {
                             let addr = opcode & 0x0FFF;
@@ -46,6 +58,7 @@ pub fn start(register: &mut Register, rom: &mut File) {
                         let x = (opcode & 0x0F00) >> 8;
                         let byte = opcode & 0x00FF;
                         println!("{:04X} LD V{:X}, {:02X}", opcode, x, byte);
+                        register.set_register(x, byte as u8);
                     }
                     0x7000 => {
                         let x = (opcode & 0x0F00) >> 8;
@@ -106,6 +119,7 @@ pub fn start(register: &mut Register, rom: &mut File) {
                     0xA000 => {
                         let addr = opcode & 0x0FFF;
                         println!("{:04X} LD I, {:03X}", opcode, addr);
+                        register.i = addr - 0x200;
                     }
                     0xB000 => {
                         let addr = opcode & 0x0FFF;
@@ -120,7 +134,18 @@ pub fn start(register: &mut Register, rom: &mut File) {
                         let x = (opcode & 0x0F00) >> 8;
                         let y = (opcode & 0x00F0) >> 4;
                         let nibble = opcode & 0x000F;
+                        let register_x = register.get_register(x) as usize;
+                        let register_y = register.get_register(y) as usize;
                         println!("{:04X} DRW V{:X}, V{:X}, {:X}", opcode, x, y, nibble);
+
+                        for i in 0..nibble {
+                            let index = register.i as usize + i as usize;
+                            if index < rom_data.len() {
+                                let byte = rom_data[index];
+                            } else {
+                                println!("Index out of bounds");
+                            }
+                        }
                     }
                     0xE000 => match opcode & 0x00FF {
                         0x009E => {
