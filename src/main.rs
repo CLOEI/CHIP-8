@@ -10,9 +10,5 @@ fn main() {
     let mut screen = Screen::default();
 
     disassembler::start(&mut register, &mut screen);
-
-    // loop {
-    //     screen.draw();
-    // }
     screen.draw();
 }

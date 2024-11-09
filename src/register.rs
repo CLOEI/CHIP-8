@@ -21,7 +21,7 @@ pub struct Register {
     pub i: u16,
     pub pc: u16,
     pub sp: u8,
-    pub stack: [u16; 16],
+    pub stack: Vec<u16>,
     pub timer: Timer,
 }
 
