@@ -15,7 +15,14 @@ impl Default for Screen {
 }
 
 impl Screen {
-    pub fn draw(&self) {}
+    pub fn draw(&self) {
+        for row in self.pixels.iter() {
+            for &pixel in row.iter() {
+                print!("{}", if pixel { "█" } else { " " });
+            }
+            println!();
+        }
+    }
     pub fn clear(&mut self) {
         self.pixels = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT];
     }

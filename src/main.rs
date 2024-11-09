@@ -11,7 +11,8 @@ fn main() {
 
     disassembler::start(&mut register, &mut screen);
 
-    loop {
-        screen.draw();
-    }
+    // loop {
+    //     screen.draw();
+    // }
+    screen.draw();
 }

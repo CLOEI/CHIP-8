@@ -1,16 +1,25 @@
 use std::{
     fs::File,
     io::{Read, Seek},
+    vec,
 };
 
-use crate::{register::Register, screen::Screen};
+use crate::{
+    register::Register,
+    screen::{Screen, SCREEN_HEIGHT, SCREEN_WIDTH},
+};
 
 pub fn start(register: &mut Register, screen: &mut Screen) {
     let mut rom: File = File::open("Pong.ch8").expect("Failed to open file");
-    let rom_data = {
+    let memory = {
+        let mut memory = [0; 0xFFF];
         let mut data = Vec::new();
         rom.read_to_end(&mut data).expect("Failed to read file");
-        data
+
+        for (i, byte) in data.iter().enumerate() {
+            memory[i + 0x200] = *byte;
+        }
+        memory
     };
     rom.seek(std::io::SeekFrom::Start(0))
         .expect("Failed to seek file");
@@ -119,7 +128,7 @@ pub fn start(register: &mut Register, screen: &mut Screen) {
                     0xA000 => {
                         let addr = opcode & 0x0FFF;
                         println!("{:04X} LD I, {:03X}", opcode, addr);
-                        register.i = addr - 0x200;
+                        register.i = addr;
                     }
                     0xB000 => {
                         let addr = opcode & 0x0FFF;
@@ -138,12 +147,28 @@ pub fn start(register: &mut Register, screen: &mut Screen) {
                         let register_y = register.get_register(y) as usize;
                         println!("{:04X} DRW V{:X}, V{:X}, {:X}", opcode, x, y, nibble);
 
+                        println!("Register X: {}", register_x);
+                        println!("Register Y: {}", register_y);
+
+                        register.set_register(0xF, 0);
+
                         for i in 0..nibble {
                             let index = register.i as usize + i as usize;
-                            if index < rom_data.len() {
-                                let byte = rom_data[index];
-                            } else {
-                                println!("Index out of bounds");
+                            let byte = memory[index];
+                            println!("Byte: {:08b}", byte);
+                            for j in 0..8 {
+                                let x = (register_x + j as usize) % SCREEN_WIDTH;
+                                let y = (register_y + i as usize) % SCREEN_HEIGHT;
+
+                                let pixel = (byte >> (7 - j)) & 0x01;
+
+                                println!("X = {}, Y = {}, Pixel = {}", x, y, pixel);
+
+                                if pixel == 1 && screen.pixels[y][x] {
+                                    register.set_register(0xF, 1);
+                                }
+
+                                screen.pixels[y][x] ^= pixel == 1;
                             }
                         }
                     }
